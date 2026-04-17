@@ -56,7 +56,7 @@ steps:
     containerRuntime: 'docker'
     scanner: 'registry.aquasec.com/scanner:2022.4.868'
     connection: 'ocp-test'
-    registry: 'guru-acr'
-    register: true
+#    registry: 'guru-acr'
+#    register: true
     arguments: "--cache-dir $(trivyCache)"
     
