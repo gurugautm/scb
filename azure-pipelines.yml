@@ -9,6 +9,7 @@ variables:
   dockerFilePath: "Dockerfile"
   buildPlatform: "linux/amd64,linux/arm64"
   trivyCache: "$(Agent.HomeDirectory)/.cache/trivy"
+  SCALOCK_LOG_LEVEL: "DEBUG"
 
 pool:
   vmImage: "ubuntu-latest"
@@ -59,6 +60,6 @@ steps:
 #    registry: 'guru-acr'
 #    register: true
     arguments: "--cache-dir $(trivyCache)"
-  env:
-    SCALOCK_LOG_LEVEL: DEBUG
-    
+    runOptions: '-e SCALOCK_LOG_LEVEL=DEBUG'
+
+  
