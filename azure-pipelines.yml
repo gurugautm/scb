@@ -1,26 +1,21 @@
 name: $(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
-  - develop
   - main
-  - production
 
 variables:
   acrName: "guruacr.azurecr.io"
-  imageName: "content-agent"
   dockerFilePath: "Dockerfile"
-  buildPlatform: "linux/amd64,linux/arm64"
   trivyCache: "$(Agent.HomeDirectory)/.cache/trivy"
+  buildContext: '$(Build.SourcesDirectory)'
+  tag: '$(Build.BuildId)'
+  imageName: '$(imageRepository):$(tag)'
 
 pool:
   vmImage: "ubuntu-latest"
 
 steps:
-# 0. (Optional) Check Docker & buildx exist
-- script: |
-    docker version
-    docker buildx version
-  displayName: "Check Docker & Buildx"
+- checkout: self
 
 # 1. Login to ACR (service connection: guru-acr)
 - task: Docker@2
@@ -29,26 +24,18 @@ steps:
     command: "login"
     containerRegistry: "guru-acr"
 
-# 2. Create Buildx Builder
-- script: |
-    set -e
-    echo "Creating buildx builder..."
-    docker buildx create --name multiarch --driver docker-container --use
-    docker buildx inspect --bootstrap
-  displayName: "Create multi-arch builder"
 
-# 3. Multi-arch Docker Build & Push
-- script: |
-    set -e
-    echo "Building and pushing multi-arch image..."
-    docker buildx build \
-      --platform $(buildPlatform) \
-      --file $(dockerFilePath) \
-      --tag $(acrName)/$(imageName):$(Build.BuildId) \
-      --tag $(acrName)/$(imageName):latest \
-      --push \
-      .
-  displayName: "Build & Push Multi-Arch Docker Image"
+# Build image from Dockerfile
+- task: Docker@2
+  displayName: Build Docker image
+  inputs:
+    command: build
+    containerRegistry: $(dockerRegistryServiceConnection)
+    repository: $(imageRepository)
+    Dockerfile: $(dockerfilePath)
+    buildContext: $(buildContext)
+    tags: |
+      $(tag)
 
 # 4. Aqua Scanner (Trivy Local Mode)
 - task: Docker@2
@@ -63,16 +50,8 @@ steps:
     image: "$(acrName)/$(imageName):$(Build.BuildId)"
     scanType: 'local'
     containerRuntime: 'docker'
-    scanner: 'registry.aquasec.com/scanner:2022.4.818'
+    scanner: 'registry.aquasec.com/scanner:2022.4.868'
     connection: 'guru-host'
     arguments: "--cache-dir $(trivyCache)"
 
-# 5. Save image info for release pipeline
-- script: |
-    echo "{\"image\":\"$(acrName)/$(imageName):$(Build.BuildId)\"}" > $(Pipeline.Workspace)/image-tags.json
-  displayName: "Create image-tags JSON"
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathToPublish: "$(Pipeline.Workspace)/image-tags.json"
-    artifactName: "image-tags"
