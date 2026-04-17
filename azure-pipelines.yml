@@ -59,4 +59,6 @@ steps:
 #    registry: 'guru-acr'
 #    register: true
     arguments: "--cache-dir $(trivyCache)"
+  env:
+    SCALOCK_LOG_LEVEL: DEBUG
     
