@@ -60,6 +60,6 @@ steps:
 #    registry: 'guru-acr'
 #    register: true
     arguments: "--cache-dir $(trivyCache)"
-    runOptions: '-e SCALOCK_LOG_LEVEL=DEBUG'
+    runOptions: '-e SCALOCK_LOG_LEVEL=DEBUG, --jsonfile /tmp/abc.json'
 
   
